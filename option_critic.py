@@ -5,13 +5,16 @@ from torch.distributions import Categorical, Bernoulli
 from math import exp
 import numpy as np
 
+from utils import to_tensor
+
 class OptionCritic(nn.Module):
     def __init__(self,
                 in_channels,
                 num_actions,
                 num_options,
+                temperature=1.0,
                 eps_start=1.0,
-                eps_min=.1,
+                eps_min=0.1,
                 eps_decay=int(1e6),
                 eps_test=0.05,
                 device='cpu',
@@ -26,6 +29,7 @@ class OptionCritic(nn.Module):
         self.device = device
         self.testing = testing
 
+        self.temperature = temperature
         self.eps_min   = eps_min
         self.eps_start = eps_start
         self.eps_decay = eps_decay
@@ -52,7 +56,9 @@ class OptionCritic(nn.Module):
         self.to(device)
         self.train(not testing)
 
-    def get_state(self, obs): # OBS SHOULD BE A TORCH TENSOR!
+    def get_state(self, obs):
+        if obs.ndim < 4:
+            obs = obs.unsqueeze(0)
         obs = obs.to(self.device)
         state = self.features(obs)
         return state
@@ -72,7 +78,8 @@ class OptionCritic(nn.Module):
         return self.terminations(state).sigmoid() 
 
     def get_action(self, state, option):
-        action_dist = (state @ self.options_W[option] + self.options_b[option]).softmax(dim=-1)
+        logits = state @ self.options_W[option] + self.options_b[option]
+        action_dist = (logits / self.temperature).softmax(dim=-1)
         action_dist = Categorical(action_dist)
 
         action = action_dist.sample()
@@ -96,17 +103,28 @@ class OptionCritic(nn.Module):
 
 
 def critic_loss(model, model_prime, data_batch, optim, args):
+    """
+    
+    Args:
+        model ([type]): [description]
+        model_prime ([type]): [description]
+        data_batch ([type]): [description]
+        optim ([type]): [description]
+        args ([type]): [description]
+    
+    Returns:
+        [type]: [description]
+    """
     obs, options, rewards, next_obs, dones = data_batch
-
     batch_idx = torch.arange(len(options)).long()
     options   = torch.LongTensor(options)
     rewards   = torch.FloatTensor(rewards)
     masks     = 1 - torch.FloatTensor(dones)
 
     # get next state normal and prime (probably target network?)
-    states = model.get_state(to_tensor1(obs))
-    next_states = model.get_state(to_tensor1(next_obs))
-    next_states_prime = model_prime.get_state(to_tensor1(next_obs))
+    states = model.get_state(to_tensor(obs))
+    next_states = model.get_state(to_tensor(next_obs))
+    next_states_prime = model_prime.get_state(to_tensor(next_obs))
 
     # Get the termination probabilities of current and next state, and of the specific option
     termination_probs = model.get_terminations(states).detach()
@@ -144,9 +162,27 @@ def critic_loss(model, model_prime, data_batch, optim, args):
     return td_cost.item()
 
 def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_prime, optim, args):
-    state = model.get_state(to_tensor2(obs))
-    next_state = model.get_state(to_tensor2(next_obs))
-    next_state_prime = model_prime.get_state(to_tensor2(next_obs))
+    """[summary]
+    
+    Args:
+        obs ([type]): [description]
+        option ([type]): [description]
+        logp ([type]): [description]
+        entropy ([type]): [description]
+        reward ([type]): [description]
+        done (function): [description]
+        next_obs ([type]): [description]
+        model ([type]): [description]
+        model_prime ([type]): [description]
+        optim ([type]): [description]
+        args ([type]): [description]
+    
+    Returns:
+        [type]: [description]
+    """
+    state = model.get_state(to_tensor(obs))
+    next_state = model.get_state(to_tensor(next_obs))
+    next_state_prime = model_prime.get_state(to_tensor(next_obs))
 
     option_term_prob = model.get_terminations(state)[:, option]
     next_option_term_prob = model.get_terminations(next_state)[:, option].detach()
@@ -167,13 +203,3 @@ def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_
     actor_loss.backward()
     optim.step()
     return actor_loss.item()
-
-def to_tensor1(obs):
-    obs = np.asarray(obs)
-    obs = torch.from_numpy(obs)
-    return obs
-
-def to_tensor2(obs):
-    obs = np.asarray(obs)
-    obs = torch.from_numpy(obs).unsqueeze(0)
-    return obs
