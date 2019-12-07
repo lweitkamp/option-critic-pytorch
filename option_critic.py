@@ -117,9 +117,9 @@ def critic_loss(model, model_prime, data_batch, optim, args):
     """
     obs, options, rewards, next_obs, dones = data_batch
     batch_idx = torch.arange(len(options)).long()
-    options   = torch.LongTensor(options)
-    rewards   = torch.FloatTensor(rewards)
-    masks     = 1 - torch.FloatTensor(dones)
+    options   = torch.LongTensor(options).to(model.device)
+    rewards   = torch.FloatTensor(rewards).to(model.device)
+    masks     = 1 - torch.FloatTensor(dones).to(model.device)
 
     # get next state normal and prime (probably target network?)
     states = model.get_state(to_tensor(obs))
@@ -197,7 +197,7 @@ def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_
     y = y.detach()
 
     termination_loss = option_term_prob * (Q[option] - Q.max(dim=-1)[0] + args.termination_reg)
-    policy_loss = (-logp * (y - Q[option])).sum() - args.entropy_reg * entropy
+    policy_loss = -logp * (y - Q[option]) - args.entropy_reg * entropy
     actor_loss = termination_loss + policy_loss
     optim.zero_grad()
     actor_loss.backward()

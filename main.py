@@ -34,15 +34,15 @@ parser.add_argument('--batch-size', type=int, default=32, help='Batch size.')
 parser.add_argument('--freeze-interval', type=int, default=10000, help=('Interval between target freezes.'))
 parser.add_argument('--update-frequency', type=int, default=4, help=('Number of actions before each SGD update.'))
 parser.add_argument('--folder-name', type=str, default="", help='Name of pkl files destination (within models/)')
-parser.add_argument('--termination-reg', type=float, default=0.0, help=('Regularization to decrease termination prob.'))
-parser.add_argument('--entropy-reg', type=float, default=0.0, help=('Regularization to increase policy entropy.'))
+parser.add_argument('--termination-reg', type=float, default=0.01, help=('Regularization to decrease termination prob.'))
+parser.add_argument('--entropy-reg', type=float, default=0.01, help=('Regularization to increase policy entropy.'))
 parser.add_argument('--num-options', type=int, default=8, help=('Number of options to create.'))
 parser.add_argument('--actor-lr', type=float, default=0.00025, help=('Actor network learning rate'))
 parser.add_argument('--mean-frame', type=bool, default=False, help='Use pixel-wise mean consecutive frames as images.')
 parser.add_argument('--temp', type=float, default=1, help='Action distribution softmax tempurature param.')
 
 parser.add_argument('--max_steps_ep', type=int, default=18000, help='number of maximum steps per episode.')
-parser.add_argument('--max_steps_total', type=int, default=int(4e7), help='number of maximum steps to take.') # bout 4 million
+parser.add_argument('--max_steps_total', type=int, default=int(4e6), help='number of maximum steps to take.') # bout 4 million
 parser.add_argument('--cuda', type=bool, default=True, help='Enable CUDA training (recommended if possible).')
 parser.add_argument('--seed', type=int, default=42, help='Random seed for numpy, torch, random.')
 parser.add_argument('--logdir', type=str, default='runs', help='Directory for logging statistics')
@@ -76,7 +76,7 @@ def run(args):
     torch.manual_seed(args.seed)
 
     buffer = ReplayBuffer(capacity=args.max_history, seed=args.seed)
-    logger = Logger(logdir=args.logdir, run_name=f"{OptionCritic.__name__}-{args.env}-{time.ctime()}") # [TODO]: add time.time() to name
+    logger = Logger(logdir=args.logdir, run_name=f"{OptionCritic.__name__}-{args.env}-{time.ctime()}")
 
     steps = 0
     while steps < args.max_steps_total:
