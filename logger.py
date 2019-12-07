@@ -2,6 +2,8 @@ import logging
 import os
 import time
 
+from torch.utils.tensorboard import SummaryWriter
+
 class Logger():
     def __init__(self, logdir, run_name):
         self.log_name = logdir + '/' + run_name
@@ -11,6 +13,8 @@ class Logger():
 
         if not os.path.exists(self.log_name):
             os.makedirs(self.log_name)
+
+        self.writer = SummaryWriter(self.log_name)
 
         logging.basicConfig(
             level=logging.DEBUG,
@@ -27,13 +31,14 @@ class Logger():
         logging.info(f"> ep {self.n_eps} done. total_steps={steps} | reward={reward} | episode_steps={ep_steps} "\
             f"| hours={(time.time()-self.start_time) / 60 / 60:.3f}")
         # TODO: log to tensorflow
+        self.writer.add_scalar(tag="episodic_rewards", scalar_value=reward, global_step=self.n_eps)
 
-    def log_data(self, data):
-        # log per step
-        # - reward 
-        # - entropy
-        # - Q values..?
-        pass
+    def log_data(self, step, actor_loss, critic_loss, entropy):
+        if actor_loss:
+            self.writer.add_scalar(tag="actor_loss", scalar_value=actor_loss, global_step=step)
+        if critic_loss:
+            self.writer.add_scalar(tag="critic_loss", scalar_value=critic_loss, global_step=step)
+        self.writer.add_scalar(tag="policy_entropy", scalar_value=entropy, global_step=step)
 
 if __name__=="__main__":
     logger = Logger(logdir='runs/', run_name='test_model-test_env')

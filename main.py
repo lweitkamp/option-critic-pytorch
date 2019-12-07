@@ -127,11 +127,8 @@ def run(args):
             ep_steps += 1
             curr_op_len += 1
 
-            # LOGGING
-            ## what to log on a step-by-step basis?
-            # critic_loss, actor_loss, ...
+            logger.log_data(steps, actor_loss, critic_loss, entropy.item())
 
-        # EP LOGGING
         logger.log_episode(steps, rewards, option_lengths, ep_steps)
 
 if __name__=="__main__":
