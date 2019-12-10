@@ -8,9 +8,9 @@ from copy import deepcopy
 #from option_critic import critic_loss as critic_loss_fn
 #from option_critic import actor_loss as actor_loss_fn
 
-from option_critic_features import OptionCriticFeatures
-from option_critic_features import critic_loss as critic_loss_fn
-from option_critic_features import actor_loss as actor_loss_fn
+from option_critic import OptionCriticFeatures, OptionCriticConv
+from option_critic import critic_loss as critic_loss_fn
+from option_critic import actor_loss as actor_loss_fn
 
 from experience_replay import ReplayBuffer
 from utils import make_env, to_tensor
@@ -19,14 +19,13 @@ from logger import Logger
 import time
 
 parser = argparse.ArgumentParser(description="Option Critic PyTorch")
-parser.add_argument('--env', default='BreakoutNoFrameskip-v4', help='ROM to run')
+parser.add_argument('--env', default='CartPole-v0', help='ROM to run')
 parser.add_argument('--epochs', type=int, default=8000, help='Number of training epochs')
 parser.add_argument('--steps-per-epoch', type=int, default=250000, help='Number of steps per epoch')
 parser.add_argument('--test-length', type=int, default=130000, help='Number of steps per test')
 parser.add_argument('--optimal-eps', type=float, default=0.05, help='Epsilon when playing optimally')
-parser.add_argument('--experiment-prefix', dest="experiment_prefix", default=None, help='Experiment name prefix ' '(default is the name of the game)')
 parser.add_argument('--frame-skip', default=4, type=int, help='Every how many frames to process')
-parser.add_argument('--learning-rate',type=float, default=.00025, help='Learning rate')
+parser.add_argument('--learning-rate',type=float, default=.0005, help='Learning rate')
 parser.add_argument('--rms-decay', type=float, default=.95, help='Decay rate for rms_prop')
 parser.add_argument('--rms-epsilon', type=float, default=.01, help='Denominator epsilson for rms_prop')
 parser.add_argument('--gamma', type=float, default=.99, help='Discount rate')
@@ -41,7 +40,6 @@ parser.add_argument('--folder-name', type=str, default="", help='Name of pkl fil
 parser.add_argument('--termination-reg', type=float, default=0.01, help=('Regularization to decrease termination prob.'))
 parser.add_argument('--entropy-reg', type=float, default=0.01, help=('Regularization to increase policy entropy.'))
 parser.add_argument('--num-options', type=int, default=2, help=('Number of options to create.'))
-parser.add_argument('--mean-frame', type=bool, default=False, help='Use pixel-wise mean consecutive frames as images.')
 parser.add_argument('--temp', type=float, default=1, help='Action distribution softmax tempurature param.')
 
 parser.add_argument('--max_steps_ep', type=int, default=18000, help='number of maximum steps per episode.')
@@ -53,12 +51,11 @@ parser.add_argument('--exp', type=str, default=None, help='optional experiment n
 
 
 def run(args):
-    #env = make_env(args.env)
-    import gym
-    env = gym.make(args.env)
+    env, is_atari = make_env(args.env)
+    option_critic = OptionCriticConv if is_atari else OptionCriticFeatures
     device = torch.device('cuda' if torch.cuda.is_available() and args.cuda else 'cpu')
 
-    option_critic = OptionCriticFeatures(
+    option_critic = option_critic(
         in_features=env.observation_space.shape[0],
         num_actions=env.action_space.n,
         num_options=args.num_options,

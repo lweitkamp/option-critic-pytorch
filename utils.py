@@ -8,11 +8,6 @@ from gym.wrappers import FrameStack as FrameStack_
 
 class LazyFrames(object):
     def __init__(self, frames):
-        """This object ensures that common frames between the observations are only stored once.
-        It exists purely to optimize memory usage which can be huge for DQN's 1M frames replay
-        buffers.
-        This object should only be converted to numpy array before being passed to the model.
-        You'd not believe how complex the previous solution was."""
         self._frames = frames
 
     def __array__(self, dtype=None):
@@ -36,19 +31,14 @@ class FrameStack(FrameStack_):
         assert len(self.frames) == self.k
         return LazyFrames(list(self.frames))
 
-def make_env(env):
-    env = gym.make("BreakoutNoFrameskip-v4")
-    env = AtariPreprocessing(
-            env,
-            screen_size=84,
-            grayscale_obs=True,
-            frame_skip=1,
-            scale_obs=True, # It also limits memory optimization benefits of FrameStack Wrapper. <-- ?
-            terminal_on_life_loss=True, 
-    )
-    env = TransformReward(env, lambda r: np.clip(r, -1, 1)) # option-critic uses clipping
-    env = FrameStack(env, 4)
-    return env
+def make_env(env_name):
+    env = gym.make(env_name)
+    is_atari = hasattr(gym.envs, 'atari') and isinstance(env.unwrapped, gym.envs.atari.atari_env.AtariEnv)
+    if is_atari:
+        env = AtariPreprocessing(env, grayscale_obs=True, scale_obs=True, terminal_on_life_loss=True)
+        env = TransformReward(env, lambda r: np.clip(r, -1, 1))
+        env = FrameStack(env, 4)
+    return env, is_atari
 
 def to_tensor(obs):
     obs = np.asarray(obs)
