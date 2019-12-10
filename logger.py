@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
 class Logger():
@@ -26,19 +26,21 @@ class Logger():
             datefmt='%Y/%m/%d %I:%M:%S %p'
             )
 
-    def log_episode(self, steps, reward, option_lenghts, ep_steps):
+    def log_episode(self, steps, reward, option_lengths, ep_steps):
         self.n_eps += 1
         logging.info(f"> ep {self.n_eps} done. total_steps={steps} | reward={reward} | episode_steps={ep_steps} "\
             f"| hours={(time.time()-self.start_time) / 60 / 60:.3f}")
-        # TODO: log to tensorflow
         self.writer.add_scalar(tag="episodic_rewards", scalar_value=reward, global_step=self.n_eps)
+        for option, lens in option_lengths.items():
+            self.writer.add_scalar(tag=f"option_{option}_avg_active", scalar_value=np.mean(lens), global_step=self.n_eps)
 
-    def log_data(self, step, actor_loss, critic_loss, entropy):
+    def log_data(self, step, actor_loss, critic_loss, entropy, epsilon):
         if actor_loss:
-            self.writer.add_scalar(tag="actor_loss", scalar_value=actor_loss, global_step=step)
+            self.writer.add_scalar(tag="actor_loss", scalar_value=actor_loss.item(), global_step=step)
         if critic_loss:
-            self.writer.add_scalar(tag="critic_loss", scalar_value=critic_loss, global_step=step)
+            self.writer.add_scalar(tag="critic_loss", scalar_value=critic_loss.item(), global_step=step)
         self.writer.add_scalar(tag="policy_entropy", scalar_value=entropy, global_step=step)
+        self.writer.add_scalar(tag="epsilon",scalar_value=epsilon, global_step=step)
 
 if __name__=="__main__":
     logger = Logger(logdir='runs/', run_name='test_model-test_env')

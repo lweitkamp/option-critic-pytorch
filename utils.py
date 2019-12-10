@@ -52,5 +52,5 @@ def make_env(env):
 
 def to_tensor(obs):
     obs = np.asarray(obs)
-    obs = torch.from_numpy(obs)
+    obs = torch.from_numpy(obs).float()
     return obs
