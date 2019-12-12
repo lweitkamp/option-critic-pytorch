@@ -235,7 +235,7 @@ def actor_loss(obs, option, logp, entropy, reward, done, next_obs, model, model_
         ((1 - next_option_term_prob) * next_Q_prime[option] + next_option_term_prob  * next_Q_prime.max(dim=-1)[0])
 
     # The termination loss
-    termination_loss = option_term_prob * (Q[option] - Q.max(dim=-1)[0] + args.termination_reg) * (1 - done)
+    termination_loss = option_term_prob * (Q[option].detach() - Q.max(dim=-1)[0].detach() + args.termination_reg) * (1 - done)
     
     # actor-critic policy gradient with entropy regularization
     policy_loss = -logp * (gt.detach() - Q[option]) - args.entropy_reg * entropy

@@ -51,7 +51,11 @@ wwwwwwwwwwwww
         self.goal = 62 # East doorway
         self.init_states = list(range(self.observation_space.shape[0]))
         self.init_states.remove(self.goal)
+        self.ep_steps = 0
 
+    def seed(self, seed=None):
+        return self._seed(seed)
+    
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -67,9 +71,10 @@ wwwwwwwwwwwww
     def reset(self):
         state = self.rng.choice(self.init_states)
         self.currentcell = self.tocell[state]
+        self.ep_steps = 0
         return self.get_state(state)
 
-    def reset_goal(self):
+    def switch_goal(self):
         prev_goal = self.goal
         self.goal = self.rng.choice(self.init_states)
         self.init_states.append(prev_goal)
@@ -100,6 +105,8 @@ wwwwwwwwwwwww
         same cell.
         We consider a case in which rewards are zero on all state transitions.
         """
+        self.ep_steps += 1
+
         nextcell = tuple(self.currentcell + self.directions[action])
         if not self.occupancy[nextcell]:
             if self.rng.uniform() < 1/3.:
@@ -110,5 +117,13 @@ wwwwwwwwwwwww
 
         state = self.tostate[self.currentcell]
         done = state == self.goal
+        reward = float(done)
 
-        return self.get_state(state), float(done), done, None
+        if not done and self.ep_steps >= 1000:
+            done = True ; reward = 0.0
+
+        return self.get_state(state), reward, done, None
+
+if __name__=="__main__":
+    env = Fourrooms()
+    env.seed(3)

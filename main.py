@@ -36,10 +36,10 @@ parser.add_argument('--temp', type=float, default=1, help='Action distribution s
 parser.add_argument('--max_steps_ep', type=int, default=18000, help='number of maximum steps per episode.')
 parser.add_argument('--max_steps_total', type=int, default=int(4e6), help='number of maximum steps to take.') # bout 4 million
 parser.add_argument('--cuda', type=bool, default=True, help='Enable CUDA training (recommended if possible).')
-parser.add_argument('--seed', type=int, default=42, help='Random seed for numpy, torch, random.')
+parser.add_argument('--seed', type=int, default=0, help='Random seed for numpy, torch, random.')
 parser.add_argument('--logdir', type=str, default='runs', help='Directory for logging statistics')
 parser.add_argument('--exp', type=str, default=None, help='optional experiment name')
-
+parser.add_argument('--switch-goal', type=bool, default=False, help='switch goal after 2k eps')
 
 def run(args):
     env, is_atari = make_env(args.env)
@@ -60,16 +60,17 @@ def run(args):
     # Create a prime network for more stable Q values
     option_critic_prime = deepcopy(option_critic)
 
-    optim = torch.optim.RMSprop(option_critic.parameters(),
-                                        lr=args.learning_rate)
+    optim = torch.optim.RMSprop(option_critic.parameters(), lr=args.learning_rate)
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
+    env.seed(args.seed)
 
     buffer = ReplayBuffer(capacity=args.max_history, seed=args.seed)
     logger = Logger(logdir=args.logdir, run_name=f"{OptionCriticFeatures.__name__}-{args.env}-{args.exp}-{time.ctime()}")
 
-    steps = 0
+    steps = 0 ; 
+    print(f"Current goal {env.goal}")
     while steps < args.max_steps_total:
 
         rewards = 0 ; option_lengths = {opt:[] for opt in range(args.num_options)}
@@ -78,6 +79,22 @@ def run(args):
         state = option_critic.get_state(to_tensor(obs))
         greedy_option  = option_critic.greedy_option(state)
         current_option = 0
+
+        # Goal switching experiment: run for 1k episodes in fourrooms, switch goals and run for another
+        # 2k episodes. In option-critic, if the options have some meaning, only the policy-over-options
+        # should be finedtuned (this is what we would hope).
+        if args.switch_goal and logger.n_eps == 1000:
+            torch.save({'model_params': option_critic.state_dict(),
+                        'goal_state': env.goal},
+                        'models/option_critic_{args.seed}_1k')
+            env.switch_goal()
+            print(f"New goal {env.goal}")
+
+        if args.switch_goal and logger.n_eps > 2000:
+            torch.save({'model_params': option_critic.state_dict(),
+                        'goal_state': env.goal},
+                        'models/option_critic_{args.seed}_2k')
+            break
 
         done = False ; ep_steps = 0 ; option_termination = True ; curr_op_len = 0
         while not done and ep_steps < args.max_steps_ep:
@@ -125,7 +142,7 @@ def run(args):
 
             logger.log_data(steps, actor_loss, critic_loss, entropy.item(), epsilon)
 
-        logger.log_episode(steps, rewards, option_lengths, ep_steps)
+        logger.log_episode(steps, rewards, option_lengths, ep_steps, epsilon)
 
 if __name__=="__main__":
     args = parser.parse_args()
