@@ -82,7 +82,7 @@ def run(args):
         current_option = 0
 
         done = False ; ep_steps = 0 ; option_termination = True ; curr_op_len = 0
-        while not done or ep_steps < args.max_steps_ep:
+        while not done and ep_steps < args.max_steps_ep:
             epsilon = option_critic.epsilon
 
             if option_termination:
