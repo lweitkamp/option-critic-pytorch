@@ -10,7 +10,7 @@ from utils import to_tensor
 
 class OptionCriticConv(nn.Module):
     def __init__(self,
-                in_channels,
+                in_features,
                 num_actions,
                 num_options,
                 temperature=1.0,
@@ -21,9 +21,9 @@ class OptionCriticConv(nn.Module):
                 device='cpu',
                 testing=False):
 
-        super(OptionCritic, self).__init__()
+        super(OptionCriticConv, self).__init__()
 
-        self.in_channels = in_channels
+        self.in_channels = in_features
         self.num_actions = num_actions
         self.num_options = num_options
         self.magic_number = 7 * 7 * 64
@@ -38,7 +38,7 @@ class OptionCriticConv(nn.Module):
         self.num_steps = 0
         
         self.features = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=8, stride=4),
+            nn.Conv2d(self.in_channels, 32, kernel_size=8, stride=4),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.ReLU(),

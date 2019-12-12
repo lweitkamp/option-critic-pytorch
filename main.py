@@ -3,11 +3,6 @@ import argparse
 import torch
 from copy import deepcopy
 
-# pong etc is a work in progress still
-#from option_critic import OptionCritic
-#from option_critic import critic_loss as critic_loss_fn
-#from option_critic import actor_loss as actor_loss_fn
-
 from option_critic import OptionCriticFeatures, OptionCriticConv
 from option_critic import critic_loss as critic_loss_fn
 from option_critic import actor_loss as actor_loss_fn
@@ -20,9 +15,6 @@ import time
 
 parser = argparse.ArgumentParser(description="Option Critic PyTorch")
 parser.add_argument('--env', default='CartPole-v0', help='ROM to run')
-parser.add_argument('--epochs', type=int, default=8000, help='Number of training epochs')
-parser.add_argument('--steps-per-epoch', type=int, default=250000, help='Number of steps per epoch')
-parser.add_argument('--test-length', type=int, default=130000, help='Number of steps per test')
 parser.add_argument('--optimal-eps', type=float, default=0.05, help='Epsilon when playing optimally')
 parser.add_argument('--frame-skip', default=4, type=int, help='Every how many frames to process')
 parser.add_argument('--learning-rate',type=float, default=.0005, help='Learning rate')
@@ -36,7 +28,6 @@ parser.add_argument('--max-history', type=int, default=10000, help=('Maximum num
 parser.add_argument('--batch-size', type=int, default=32, help='Batch size.')
 parser.add_argument('--freeze-interval', type=int, default=200, help=('Interval between target freezes.'))
 parser.add_argument('--update-frequency', type=int, default=4, help=('Number of actions before each SGD update.'))
-parser.add_argument('--folder-name', type=str, default="", help='Name of pkl files destination (within models/)')
 parser.add_argument('--termination-reg', type=float, default=0.01, help=('Regularization to decrease termination prob.'))
 parser.add_argument('--entropy-reg', type=float, default=0.01, help=('Regularization to increase policy entropy.'))
 parser.add_argument('--num-options', type=int, default=2, help=('Number of options to create.'))
