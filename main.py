@@ -62,8 +62,6 @@ def run(args):
 
     optim = torch.optim.RMSprop(option_critic.parameters(),
                                         lr=args.learning_rate)
-                                        #eps=args.rms_epsilon,
-                                        #weight_decay=args.rms_decay)
 
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
