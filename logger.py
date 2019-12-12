@@ -31,7 +31,9 @@ class Logger():
         logging.info(f"> ep {self.n_eps} done. total_steps={steps} | reward={reward} | episode_steps={ep_steps} "\
             f"| hours={(time.time()-self.start_time) / 60 / 60:.3f}")
         self.writer.add_scalar(tag="episodic_rewards", scalar_value=reward, global_step=self.n_eps)
+        self.writer.add_scalar(tag='episode_lengths', scalar_value=steps, global_step=self.n_eps)
         for option, lens in option_lengths.items():
+            # Need better statistics for this one, point average is terrible in this case
             self.writer.add_scalar(tag=f"option_{option}_avg_active", scalar_value=np.mean(lens), global_step=self.n_eps)
 
     def log_data(self, step, actor_loss, critic_loss, entropy, epsilon):
