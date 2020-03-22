@@ -23,7 +23,7 @@ parser.add_argument('--batch-size', type=int, default=32, help='Batch size.')
 parser.add_argument('--freeze-interval', type=int, default=200, help=('Interval between target freezes.'))
 parser.add_argument('--update-frequency', type=int, default=4, help=('Number of actions before each SGD update.'))
 parser.add_argument('--xi', type=float, default=0.01, help=('Regularization to decrease termination prob.'))
-parser.add_argument('--entropy-reg', type=float, default=0.01, help=('Regularization to increase policy entropy.'))
+parser.add_argument('--ent-reg', type=float, default=0.01, help=('Regularization to increase policy entropy.'))
 parser.add_argument('--num-options', type=int, default=2, help=('Number of options to create.'))
 parser.add_argument('--temp', type=float, default=1, help='Action distribution softmax tempurature param.')
 
@@ -69,14 +69,15 @@ def run(args):
         greedy_option = agent.greedy_option(state)
         option = 0
 
-        done = False ; ep_steps = 0 ; option_termination = True ; curr_op_len = 0
+        done = False ; ep_steps = 0 ; option_termination = True #; curr_op_len = 0
         while not done and ep_steps < args.max_steps_ep:
             epsilon = next(e_greedy)
 
             if option_termination:
-                option_lengths[option].append(curr_op_len)
-                option = np.random.choice(args.num_options) if np.random.rand() < epsilon else greedy_option
-                curr_op_len = 0
+                #option_lengths[option].append(curr_op_len)
+                option = np.random.choice(args.num_options) if \
+                    np.random.rand() < epsilon else greedy_option
+                #curr_op_len = 0
 
             action, logp, entropy = agent.get_action(state, option)
 
@@ -88,18 +89,21 @@ def run(args):
             option_termination = agent.predict_option_termination(next_state, option)
             greedy_option      = agent.greedy_option(next_state)
 
-            optim.zero_grad()
             actor_loss, critic_loss = None, None
             if len(buffer) > args.batch_size:
-                actor_loss = agent.actor_loss(state, option,
-                    logp, entropy, reward, done, next_state, epsilon, args)
-                actor_loss.backward()
+                actor_loss = agent.actor_loss(obs, option, \
+                    logp, entropy, reward, done, next_obs, \
+                    epsilon, agent_prime, args)
+                loss = actor_loss
 
                 if steps % args.update_frequency == 0:
                     data_batch = buffer.sample(args.batch_size)
-                    critic_loss = agent.critic_loss(data_batch, args)
-                    critic_loss.backward()
+                    critic_loss = agent.critic_loss(data_batch, \
+                        agent_prime, args)
+                    loss += critic_loss
 
+                optim.zero_grad()
+                loss.backward()
                 optim.step()
 
                 if steps % args.freeze_interval == 0:
@@ -109,7 +113,7 @@ def run(args):
             rewards += reward
             steps += 1
             ep_steps += 1
-            curr_op_len += 1
+            #curr_op_len += 1
             state = next_state
             obs = next_obs
 

@@ -24,7 +24,7 @@ class LinearSchedule:
 def make_env(env_name):
 
     if env_name == 'fourrooms':
-        env = Fourrooms()
+        return Fourrooms()
 
     env = gym.make(env_name)
     return env

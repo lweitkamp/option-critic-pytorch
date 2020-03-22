@@ -119,7 +119,7 @@ wwwwwwwwwwwww
         done = state == self.goal
         reward = float(done)
 
-        if not done and self.ep_steps >= 1000:
+        if not done and self.ep_steps >= 500:
             done = True ; reward = 0.0
 
         return self.get_state(state), reward, done, None

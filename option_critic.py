@@ -14,18 +14,21 @@ class OptionCritic(nn.Module):
     This specific version has a wholly independent network per option,
     to try and answer the following question:
 
-    - Why do options, in deep end-to-end learning, reach a local optima in which
-    each option is 'exactly' the same?
+    - Why do options, in deep end-to-end learning, reach a local optima in
+    which each option is 'exactly' the same?
 
     My hypothesis is that this is due to the following points:
 
-    (1) end-to-end learning with shared features might pull the options together in earlier layers.
+    (1) end-to-end learning with shared features might pull the options
+        together in earlier layers.
         It will take 'too much' advantage of a shared representation.
-    (2) There is no effort at all to make options dissimilar, hence there is no reason it should go
+    (2) There is no effort at all to make options dissimilar, hence there is
+        no reason it should go
         and learn different interpretable and useful options.
 
-    This implementation is meant to fix (1), and see if that works. This might be backed up by the fact
-    that the tabular implementation 'does' seem to learn interpretable options.
+    This implementation is meant to fix (1), and see if that works. This might
+    be backed up by the fact that the tabular implementation 'does' seem to
+    learn interpretable options.
     """
     def __init__(self,
                 in_features,
@@ -45,9 +48,9 @@ class OptionCritic(nn.Module):
 
         self.features = [
             nn.Sequential(
-                nn.Linear(in_features, 64),
+                nn.Linear(in_features, 32),
                 nn.ReLU(),
-                nn.Linear(64, 64),
+                nn.Linear(32, 64),
                 nn.ReLU()
             ) for _ in range(num_options)
         ]
@@ -61,7 +64,7 @@ class OptionCritic(nn.Module):
         self.to(device)
         self.train(not testing)
 
-    def get_state(self, observations, options=None):
+    def get_state(self, obs, options=None):
         """
         observations: batch_size x feature_dim OR feature_dim
         options     : integer or list of integers
@@ -69,9 +72,9 @@ class OptionCritic(nn.Module):
         Retrieve the 'state' from an observation of the environment.
         """
         if options is not None:
-            states = [self.features[op](obs) for obs, op in zip(observations, options)]
+            states = [self.features[op](ob) for ob, op in zip(obs, options)]
         else:
-            states = [self.features[op](observations) for op in self.option_idx]
+            states = [self.features[op](obs) for op in self.option_idx]
         return torch.stack(states)
 
     def get_Q(self, states, options):
@@ -137,27 +140,43 @@ class OptionCritic(nn.Module):
             qs = self.get_Q(state, self.option_idx)
             return qs.argmax(-1).item()
 
-    def actor_loss(self, state, option, logp, entropy, reward, done, next_state, eps, args):
-        q    = self.get_Q(state, self.option_idx)
-        beta = self.get_beta(state)[option]
+    def actor_loss(self, obs, option, logp, ent, r,
+            done, next_obs, eps, agent_prime, args):
+        """
+        Calculate the actor loss in the option-critic model.
+        The loss is defined here as the sum of the option and termination loss.
 
-        q_next    = self.get_Q(next_state, self.option_idx).detach()
+        actor loss: the typical REINFORCE policy-gradient loss. Here we use
+                    the return and subtract Q_Omega(s, o) as a baseline.
+        termination loss: ...
+        """
+        state = self.get_state(to_tensor(obs))
+        next_state = self.get_state(to_tensor(next_obs))
+        next_state_p = agent_prime.get_state(to_tensor(next_obs))
+
+        beta = self.get_beta(state)[option]
         beta_next = self.get_beta(next_state)[option].detach()
 
-        gt = reward + (1 - done) * args.gamma * \
-            ((1 - beta_next) * q_next[option] + beta_next * q_next.max(dim=-1)[0])
 
-        advantage = q[option] - q.max(dim=-1)[0] * (1 - eps) + q.mean(dim=-1) * eps
+        q = self.get_Q(state, self.option_idx).detach()
+        q_next = agent_prime.get_Q(next_state_p, self.option_idx).detach()
 
-        termination_loss = beta * (advantage.detach() + args.xi) * (1 - done)
-        option_loss      = - logp * (gt.detach() - q[option]) - args.entropy_reg * entropy
-        actor_loss       = termination_loss + option_loss
+        gt = r + (1 - done) * args.gamma * ((1 - beta_next) * \
+            q_next[option] + beta_next * q_next.max(dim=-1)[0])
+
+        adv = q[option] - (1 - eps) * q.max(dim=-1)[0] +  eps * q.mean(dim=-1)
+
+        termination_loss = beta * (adv.detach() + args.xi) * (1 - done)
+        option_loss = -logp * (gt.detach() - q[option]) - args.ent_reg * ent
+        actor_loss = termination_loss + option_loss
         return actor_loss
 
-    def critic_loss(self, data_batch, args):
+    def critic_loss(self, data_batch, agent_prime, args):
         """
         data_batch: buffer with states,...
         args:       argparse
+
+        [TODO] naming convention: q_next or next_q be consistent
 
         Given a batch of experience, calculate the critic loss.
         """
@@ -171,14 +190,14 @@ class OptionCritic(nn.Module):
         states = self.get_state(obs, options)
         qs     = self.get_Q(states, options)
 
-        next_states_prime = self.get_state(next_obs, options)
-        next_q_prime      = self.get_Q(next_states_prime, options)
+        next_states_p = agent_prime.get_state(next_obs, options)
+        next_q        = agent_prime.get_Q(next_states_p, options)
 
         next_states = self.get_state(next_obs, options)
         next_beta   = self.get_beta(next_states, options).detach()
 
         gt = rewards + masks * args.gamma * \
-            ((1 - next_beta) * next_q_prime + next_beta * next_q_prime)
+            ((1 - next_beta) * next_q + next_beta * next_q)
 
         td_err = (qs - gt.detach()).pow(2).mul(0.5).mean()
         return td_err
