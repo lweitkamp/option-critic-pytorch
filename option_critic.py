@@ -52,8 +52,8 @@ class OptionCritic(nn.Module):
             ) for _ in range(num_options)
         ]
 
-        self.Q    = [nn.Linear(64, 1) for _ in range(4)]
-        self.beta = [nn.Linear(64, 1) for _ in range(4)]
+        self.Q    = [nn.Linear(64, 1) for _ in range(num_options)]
+        self.beta = [nn.Linear(64, 1) for _ in range(num_options)]
         self.options_W = nn.Parameter(torch.zeros(num_options, 64, num_actions))
         self.options_b = nn.Parameter(torch.zeros(num_options, num_actions))
 
@@ -84,7 +84,7 @@ class OptionCritic(nn.Module):
         if not isinstance(options, list):
             options = [options]
 
-        Qso = torch.cat([option_critic.Q[o](s) for s, o in zip(states, options)])
+        Qso = torch.cat([self.Q[o](s) for s, o in zip(states, options)])
         return Qso
 
     def predict_option_termination(self, state, option):
@@ -127,17 +127,32 @@ class OptionCritic(nn.Module):
         entropy = action_dist.entropy()
         return action.item(), logp, entropy
 
-    def greedy_option(self, observation):
+    def greedy_option(self, state):
         """
         observations: single observation (feature_dim)
 
         Choose the option that maximizes the Q_omega value of observation.
         """
         with torch.no_grad():
-            states = [self.features[option](observation) for option in self.option_idx]
-            qs     = [self.Q[option](states[option]) for option in self.option_idx]
-            qs     = torch.stack(qs, dim=1).squeeze(-1)
+            qs = self.get_Q(state, self.option_idx)
             return qs.argmax(-1).item()
+
+    def actor_loss(self, state, option, logp, entropy, reward, done, next_state, eps, args):
+        q    = self.get_Q(state, self.option_idx)
+        beta = self.get_beta(state)[option]
+
+        q_next    = self.get_Q(next_state, self.option_idx).detach()
+        beta_next = self.get_beta(next_state)[option].detach()
+
+        gt = reward + (1 - done) * args.gamma * \
+            ((1 - beta_next) * q_next[option] + beta_next * q_next.max(dim=-1)[0])
+
+        advantage = q[option] - q.max(dim=-1)[0] * (1 - eps) + q.mean(dim=-1) * eps
+
+        termination_loss = beta * (advantage.detach() + args.xi) * (1 - done)
+        option_loss      = - logp * (gt.detach() - q[option]) - args.entropy_reg * entropy
+        actor_loss       = termination_loss + option_loss
+        return actor_loss
 
     def critic_loss(self, data_batch, args):
         """
@@ -153,14 +168,14 @@ class OptionCritic(nn.Module):
         rewards     = to_tensor(rewards)
         masks       = 1 - to_tensor(dones)
 
-        states = option_critic.get_state(obs, options)
-        qs     = option_critic.get_Q(states, options)
+        states = self.get_state(obs, options)
+        qs     = self.get_Q(states, options)
 
-        next_states_prime = option_critic.get_state(next_obs, options)
-        next_q_prime      = option_critic.get_Q(next_states_prime, options)
+        next_states_prime = self.get_state(next_obs, options)
+        next_q_prime      = self.get_Q(next_states_prime, options)
 
-        next_states = option_critic.get_state(next_obs, options)
-        next_beta   = option_critic.get_beta(next_states, options).detach()
+        next_states = self.get_state(next_obs, options)
+        next_beta   = self.get_beta(next_states, options).detach()
 
         gt = rewards + masks * args.gamma * \
             ((1 - next_beta) * next_q_prime + next_beta * next_q_prime)
