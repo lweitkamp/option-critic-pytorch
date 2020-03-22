@@ -55,7 +55,7 @@ wwwwwwwwwwwww
 
     def seed(self, seed=None):
         return self._seed(seed)
-    
+
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
@@ -81,7 +81,7 @@ wwwwwwwwwwwww
         self.init_states.remove(self.goal)
         assert prev_goal in self.init_states
         assert self.goal not in self.init_states
-    
+
     def get_state(self, state):
         s = np.zeros(self.observation_space.shape[0])
         s[state] = 1

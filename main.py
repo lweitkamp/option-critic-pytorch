@@ -18,8 +18,6 @@ parser.add_argument('--env', default='CartPole-v0', help='ROM to run')
 parser.add_argument('--optimal-eps', type=float, default=0.05, help='Epsilon when playing optimally')
 parser.add_argument('--frame-skip', default=4, type=int, help='Every how many frames to process')
 parser.add_argument('--learning-rate',type=float, default=.0005, help='Learning rate')
-parser.add_argument('--rms-decay', type=float, default=.95, help='Decay rate for rms_prop')
-parser.add_argument('--rms-epsilon', type=float, default=.01, help='Denominator epsilson for rms_prop')
 parser.add_argument('--gamma', type=float, default=.99, help='Discount rate')
 parser.add_argument('--epsilon-start',  type=float, default=1.0, help=('Starting value for epsilon.'))
 parser.add_argument('--epsilon-min', type=float, default=.1, help='Minimum epsilon.')
@@ -69,8 +67,8 @@ def run(args):
     buffer = ReplayBuffer(capacity=args.max_history, seed=args.seed)
     logger = Logger(logdir=args.logdir, run_name=f"{OptionCriticFeatures.__name__}-{args.env}-{args.exp}-{time.ctime()}")
 
-    steps = 0 ; 
-    print(f"Current goal {env.goal}")
+    steps = 0 ;
+    if args.switch_goal: print(f"Current goal {env.goal}")
     while steps < args.max_steps_total:
 
         rewards = 0 ; option_lengths = {opt:[] for opt in range(args.num_options)}

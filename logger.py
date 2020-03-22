@@ -32,7 +32,7 @@ class Logger():
             f"| hours={(time.time()-self.start_time) / 60 / 60:.3f} | epsilon={epsilon:.3f}")
         self.writer.add_scalar(tag="episodic_rewards", scalar_value=reward, global_step=self.n_eps)
         self.writer.add_scalar(tag='episode_lengths', scalar_value=ep_steps, global_step=self.n_eps)
-        
+
         # Keep track of options statistics
         for option, lens in option_lengths.items():
             # Need better statistics for this one, point average is terrible in this case
