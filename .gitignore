@@ -10,3 +10,4 @@ settings.json
 *.pyc
 runs/*
 analysis/*
+env/
