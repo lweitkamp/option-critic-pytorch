@@ -1,0 +1,22 @@
+{
+    "env_name": "CartPole-v0",
+    "n_options": 2,
+    "optimizer": "rmsprop",
+    "optimizer_lr": 0.00025,
+    "eps_start": 1.0,
+    "eps_min": 0.05,
+    "eps_decay": 900000,
+    "replay_capacity": 10000,
+    "logger_dir": "tb",
+    "logger_name": "CartPole-v0",
+    "init_step": 1,
+    "max_steps": 1000000,
+    "update_critic": 4,
+    "batch_size": 32,
+    "gamma": 0.99,
+    "term_reg": 0.01,
+    "ent_reg": 0.01,
+    "polyak": 0.1,
+    "actor_loss": "option_critic",
+    "critic_loss": "option_critic"
+}
