@@ -3,6 +3,8 @@ import datetime
 import gym
 from torch.utils.tensorboard import SummaryWriter
 
+from typing import Dict
+
 
 class ReturnWrapper(gym.Wrapper):
     #######################################################################
@@ -42,7 +44,7 @@ class Logger:
         self.prev_option = 0
         self.option_counter = 0
 
-    def log(self, info: dict[str, float], step: int) -> None:
+    def log(self, info: Dict[str, float], step: int) -> None:
         self.log_options(info['option'], step)
         del info['option']
 

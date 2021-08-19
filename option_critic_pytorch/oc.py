@@ -2,6 +2,8 @@ import torch
 import numpy as np
 import torch.nn as nn
 
+from typing import Dict
+
 
 class OptionCriticBase(nn.Module):
 
@@ -26,7 +28,7 @@ class OptionCriticBase(nn.Module):
     def reshape(self, x: np.ndarray) -> np.ndarray:
         return x
 
-    def forward(self, obs: np.ndarray) -> dict[str, torch.Tensor]:
+    def forward(self, obs: np.ndarray) -> Dict[str, torch.Tensor]:
         obs = self.reshape(obs)
         obs = torch.Tensor(obs, device=self.device)
         features = self.net(obs)

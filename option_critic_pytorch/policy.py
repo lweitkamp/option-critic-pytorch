@@ -6,6 +6,8 @@ import abc
 from torch.distributions import Distribution
 from torch.distributions.bernoulli import Bernoulli
 
+from typing import Dict
+
 class Policy(abc.ABC):
 
     @abc.abstractmethod
@@ -52,14 +54,14 @@ class EpsilonGreedy(Policy):
 
         return int(option)
 
-    def state_dict(self) -> dict[str, float]:
+    def state_dict(self) -> Dict[str, float]:
         return {"eps_start": self.eps_start,
                 "eps_min": self.eps_min,
                 "eps_decay": self.eps_decay,
                 "seed": self.rng.seed,
                 "n_steps": self.n_steps}
 
-    def from_state_dict(self, state_dict: dict[str, float]) -> None:
+    def from_state_dict(self, state_dict: Dict[str, float]) -> None:
         self.eps_start = state_dict['eps_start']
         self.eps_min = state_dict['eps_min']
         self.eps_decay = state_dict['eps_decay']

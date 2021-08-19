@@ -1,13 +1,13 @@
 import copy
-from typing import Callable, Optional
 import gym
 import torch
-
 
 from option_critic_pytorch.experience_replay import ReplayBuffer
 from option_critic_pytorch.loss import actor_loss, critic_loss
 from option_critic_pytorch.policy import Policy
 from option_critic_pytorch.logger import Logger
+
+from typing import Callable, Optional
 
 
 def train_loop(env: gym.Env,
