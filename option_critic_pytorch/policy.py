@@ -1,10 +1,10 @@
 from os import stat
-from torch.distributions import Distribution
 import numpy as np
 import torch
-from torch.distributions.bernoulli import Bernoulli
 import abc
 
+from torch.distributions import Distribution
+from torch.distributions.bernoulli import Bernoulli
 
 class Policy(abc.ABC):
 

@@ -4,10 +4,10 @@ import gym
 import torch
 
 
-from src.experience_replay import ReplayBuffer
-from src.loss import actor_loss, critic_loss
-from src.policy import Policy
-from src.logger import Logger
+from option_critic_pytorch.experience_replay import ReplayBuffer
+from option_critic_pytorch.loss import actor_loss, critic_loss
+from option_critic_pytorch.policy import Policy
+from option_critic_pytorch.logger import Logger
 
 
 def train_loop(env: gym.Env,
