@@ -3,4 +3,4 @@ from setuptools import setup
 setup(
    name='option_critic_pytorch',
    packages=['option_critic_pytorch'],
-   install_requires=['numpy', 'gym', 'supersuit', 'torch'])
+   install_requires=['numpy', 'supersuit', 'gym', 'torch'])
