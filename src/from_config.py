@@ -11,7 +11,6 @@ from src.logger import Logger, ReturnWrapper
 from src.oc import OptionCriticConv, OptionCriticFeatures
 from src.loss import actor_loss, critic_loss
 from src.policy import EpsilonGreedy
-from src.fourrooms import Fourrooms
 
 POSSIBLE_LOSS_ACTOR = {
     'option_critic': actor_loss
@@ -29,10 +28,7 @@ POSSIBLE_OPTIMIZER = {
 
 
 def make_env(env_name: str, seed: int):
-    if env_name == 'fourrooms':
-        env = Fourrooms()
-    else:
-        env = gym.make(env_name)
+    env = gym.make(env_name)
 
     if len(env.observation_space.shape) > 1:
         env = AtariPreprocessing(env)
