@@ -45,8 +45,9 @@ class Logger:
         self.option_counter = 0
 
     def log(self, info: Dict[str, float], step: int) -> None:
-        self.log_options(info['option'], step)
-        del info['option']
+        if 'option' in info:
+            self.log_options(info['option'], step)
+            del info['option']
 
         for key, value in info.items():
             if value is not None:
