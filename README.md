@@ -2,24 +2,61 @@
 This repository is a PyTorch implementation of the paper "The Option-Critic Architecture" by Pierre-Luc Bacon, Jean Harb and Doina Precup [arXiv](https://arxiv.org/abs/1609.05140). It is mostly a rewriting of the original Theano code found [here](https://github.com/jeanharb/option_critic) into PyTorch. The main difference is that this implementation uses a single optimizer for both options and critic.
 
 
-## Feature based deep-option critic
-Currently, the feature based model can learn CartPole-v0 with a learning rate of 0.005, this has however only been tested with two options. (I dont see any reason to use more than two in the cart pole environment.) the current runs directory holds the training results for this env with 0.005 and 0.006 learning rates.
+## Examples
 
-I suspect it will *only* take a grid search over learning rate to work on Pong and such. Just supply the right
-```--env```
-argument and the model should switch between features and convolutions.
+You can run 
 
-## Four Room experiment
-There are plenty of resources to find a numpy version of the four rooms experiment, this one is a little bit different; represent the state as a one-hot encoded vector, and learn to solve this grid world using a deep net. To enable this experiment, toggle
-```python main.py --switch-goal True --env fourrooms```
+```python
+import torch
 
-## Requirements
+from src.experience_replay import ReplayBuffer, collect_random_experience
+from src.logger import Logger
+from src.oc import OptionCriticConv
+from src.loss import actor_loss, critic_loss
+from src.policy import EpsilonGreedy
+from src.from_config import make_env
+from src.loop import train_loop
 
+device = torch.device('cuda')
+env = make_env('PongNoFrameskip-v4', seed=0)
+
+model = OptionCriticConv(in_channels=env.observation_space.shape[-1],
+                         n_options=4,
+                         n_actions=env.action_space.n,
+                         device=device)
+
+optimizer = torch.optim.RMSprop(params=model.parameters(),
+                                lr=0.00025)
+
+# Create the option-selection policy (e-greedy)
+option_policy = EpsilonGreedy(eps_start=1.0,
+                              eps_min=0.05,
+                              eps_decay=900000,
+                              seed=0)
+
+# Create the replay buffer and push a batch of experience in.
+replay_buffer = ReplayBuffer(10000, seed=0)
+for experience in collect_random_experience(env, 32, 2):
+  replay_buffer.push(*experience)
+
+logger = Logger(dir='tb', name='PongNoFrameskip-v4_seed=0')
+
+out = train_loop(env,
+                 model,
+                 option_policy,
+                 optimizer,
+                 replay_buffer,
+                 logger,
+                 init_step=1,
+                 max_steps=1000000,
+                 max_episodes=None,
+                 update_critic=4,
+                 batch_size=32,
+                 gamma=0.99,
+                 term_reg=0.01,
+                 ent_reg=0.01,
+                 polyak=0.9,
+                 actor_loss=actor_loss,
+                 critic_loss=critic_loss,
+                 env_fn=lambda: make_env('PongNoFrameskip-v4'))
 ```
-pytorch 1.3.0
-tensorboard 2.0.2
-gym 0.15.3
-```
-
-## Changes with respect to the original implementation
-- Using only one optimizer (RMSProp) for both acto and critic.

@@ -18,7 +18,6 @@ def train_loop(env: gym.Env,
                logger: Logger,
                init_step: int = 1,
                max_steps: int = int(1e6),
-               max_episodes: Optional[int] = None,
                update_critic: int = 4,
                batch_size: int = 32,
                gamma: float = 0.99,
@@ -27,7 +26,8 @@ def train_loop(env: gym.Env,
                polyak: float = 1,
                actor_loss: Callable = actor_loss,
                critic_loss: Callable = critic_loss,
-               env_fn: Callable = None):
+               print_every: int = 100000,
+               eval_env: Optional[gym.Env] = None):
 
     # Create target model.
     model_target = copy.deepcopy(model)
@@ -74,11 +74,42 @@ def train_loop(env: gym.Env,
         obs = env.reset() if done else next_obs
         logger.log(info, step)
 
-        # If we have episode-based limit, set it here.
-        if max_episodes is not None and env.n_episodes >= max_episodes:
-            break
+        if step % print_every == 0 and eval_env:
+            eval_out = eval_loop(model, option_policy, eval_env)
+            logger.log(eval_out, step)
+            print(f'Step {step} | Average Return {eval_out["eval/avg_ret"]}')
+
 
     return {'model': model,
             'option_policy': option_policy,
             'optimizer': optimizer,
             'steps': step}
+
+
+def eval_loop(model: torch.nn,
+              option_policy: Policy,
+              env: gym.Env,
+              num_episodes: int = 10):
+    """With Greedy Option selection"""
+
+    returns = []
+    for episode in range(num_episodes):
+        episodic_return = 0
+        done = False
+        obs = env.reset()
+        while not done:
+            out = model(obs)
+            option = int(out['q'].argmax(-1))
+
+            action_dist = torch.distributions.Categorical(
+                logits=out['option_logits'][:, option])
+            action = action_dist.sample()
+
+            next_obs, reward, done, info = env.step(action.item())
+
+            episodic_return += reward
+
+        returns.append(episodic_return)
+
+    return {'eval_out/avg_ret': sum(returns) / num_episodes}
+

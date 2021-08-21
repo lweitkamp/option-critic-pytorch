@@ -48,6 +48,7 @@ def from_config(filename: str, seed: int = 0):
 
     # Create the environment.
     env = make_env(config['env_name'], seed=seed)
+    eval_env = make_env(config['env_name'], seed=seed+1)
 
     # Select between discrete and continuous action spaces.
     if isinstance(env.action_space, Discrete):
@@ -100,7 +101,9 @@ def from_config(filename: str, seed: int = 0):
            'ent_reg': config['ent_reg'],
            'polyak': config['polyak'],
            'actor_loss': POSSIBLE_LOSS_ACTOR[config['actor_loss']],
-           'critic_loss': POSSIBLE_LOSS_CRITIC[config['critic_loss']]}
+           'critic_loss': POSSIBLE_LOSS_CRITIC[config['critic_loss']],
+           'eval_env': eval_env,
+           'print_every': 10}
 
     return out
 
