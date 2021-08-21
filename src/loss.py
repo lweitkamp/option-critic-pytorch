@@ -6,9 +6,9 @@ def critic_loss(model, model_target, optim, data_batch, gamma=0.99):
 
     obs, options, rewards, next_obs, dones = data_batch
     batch_idx = torch.arange(len(options), dtype=torch.long)
-    options = torch.LongTensor(options, device=model.device)
-    rewards = torch.FloatTensor(rewards, device=model.device)
-    dones = torch.FloatTensor(dones, device=model.device)
+    options = torch.LongTensor(options).to(model.device)
+    rewards = torch.FloatTensor(rewards).to(model.device)
+    dones = torch.FloatTensor(dones).to(model.device)
 
     # Get outputs of current and next obs, including from target model.
     out = model(obs)
