@@ -102,7 +102,7 @@ def eval_loop(model: torch.nn,
             option = int(out['q'].argmax(-1))
 
             action_dist = torch.distributions.Categorical(
-                logits=out['option_logits'][:, option])
+                logits=out['option_logits'][option])
             action = action_dist.sample()
 
             next_obs, reward, done, info = env.step(action.item())
