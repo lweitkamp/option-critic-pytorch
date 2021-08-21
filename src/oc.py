@@ -30,7 +30,7 @@ class OptionCriticBase(nn.Module):
 
     def forward(self, obs: np.ndarray) -> Dict[str, torch.Tensor]:
         obs = self.reshape(obs)
-        obs = torch.Tensor(obs, device=self.device)
+        obs = torch.Tensor(obs).to(self.device)
         features = self.net(obs)
 
         # Policy-Over-Options
