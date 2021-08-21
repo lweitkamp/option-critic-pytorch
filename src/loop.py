@@ -45,7 +45,7 @@ def train_loop(env: gym.Env,
 
         # Create action distribution, sample action, calculate log_prob & entropy.
         action_dist = torch.distributions.Categorical(
-            logits=out['option_logits'][:, option])
+            logits=out['option_logits'][option])
         action = action_dist.sample()
         logp = action_dist.log_prob(action)
         entropy = action_dist.entropy()
