@@ -24,6 +24,7 @@ class OptionCriticBase(nn.Module):
         self.n_options = n_options
         self.n_actions = n_actions
         self.device = device
+        self.to(device)
 
     def reshape(self, x: np.ndarray) -> np.ndarray:
         return x
