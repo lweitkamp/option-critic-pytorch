@@ -29,7 +29,7 @@ parser.add_argument('--update-frequency', type=int, default=4, help=('Number of 
 parser.add_argument('--termination-reg', type=float, default=0.01, help=('Regularization to decrease termination prob.'))
 parser.add_argument('--entropy-reg', type=float, default=0.01, help=('Regularization to increase policy entropy.'))
 parser.add_argument('--num-options', type=int, default=2, help=('Number of options to create.'))
-parser.add_argument('--temp', type=float, default=1, help='Action distribution softmax tempurature param.')
+parser.add_argument('--temp', type=float, default=1, help='Action distribution softmax temperature param.')
 
 parser.add_argument('--max_steps_ep', type=int, default=18000, help='number of maximum steps per episode.')
 parser.add_argument('--max_steps_total', type=int, default=int(4e6), help='number of maximum steps to take.') # bout 4 million
@@ -67,7 +67,7 @@ def run(args):
     buffer = ReplayBuffer(capacity=args.max_history, seed=args.seed)
     logger = Logger(logdir=args.logdir, run_name=f"{OptionCriticFeatures.__name__}-{args.env}-{args.exp}-{time.ctime()}")
 
-    steps = 0 ;
+    steps = 0
     if args.switch_goal: print(f"Current goal {env.goal}")
     while steps < args.max_steps_total:
 
