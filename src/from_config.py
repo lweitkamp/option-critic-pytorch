@@ -2,6 +2,8 @@ import json
 import torch
 import gym
 import supersuit
+import numpy as np
+import random
 
 from gym.wrappers import AtariPreprocessing
 from gym.spaces import Discrete
@@ -27,19 +29,18 @@ POSSIBLE_OPTIMIZER = {
 }
 
 
-def make_env(env_name: str, seed: int):
+def make_env(env_name: str):
     env = gym.make(env_name)
 
     if len(env.observation_space.shape) > 1:
-        env = AtariPreprocessing(env)
+        env = AtariPreprocessing(env, )
         env = supersuit.frame_stack_v1(env, 4)
 
     env = ReturnWrapper(env)
-    env.seed(seed)
     return env
 
 
-def from_config(filename: str, seed: int = 0):
+def from_config(filename: str, seed: int = 42):
     with open(filename, 'r') as f:
         config = json.load(f)
 
@@ -47,8 +48,9 @@ def from_config(filename: str, seed: int = 0):
     device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
 
     # Create the environment.
-    env = make_env(config['env_name'], seed=seed)
-    eval_env = make_env(config['env_name'], seed=seed+1)
+    env = make_env(config['env_name'])
+    eval_env = make_env(config['env_name'])
+    torch.manual_seed(seed)
 
     # Select between discrete and continuous action spaces.
     if isinstance(env.action_space, Discrete):
@@ -79,9 +81,7 @@ def from_config(filename: str, seed: int = 0):
                                   eps_decay=config['eps_decay'],
                                   seed=seed)
 
-    replay_buffer = ReplayBuffer(config['replay_capacity'], seed=seed)
-    for experience in collect_random_experience(env, 32, 2):
-        replay_buffer.push(*experience)
+    replay_buffer = ReplayBuffer(config['replay_capacity'])
 
     logname = config['logger_name'] + f"_seed={seed}"
     logger = Logger(dir=config['logger_dir'], name=logname)
@@ -103,14 +103,13 @@ def from_config(filename: str, seed: int = 0):
            'actor_loss': POSSIBLE_LOSS_ACTOR[config['actor_loss']],
            'critic_loss': POSSIBLE_LOSS_CRITIC[config['critic_loss']],
            'eval_env': eval_env,
-           'print_every': 10}
+           'print_every': config['print_every'],
+           'seed': seed}
 
     return out
 
 
 if __name__ == "__main__":
-    out = from_config('config_files/CartPole-v0.json')
-    print(out)
-
     from src.loop import train_loop
+    out = from_config('../config_files/CartPole-v0.json')
     train_loop(**out)

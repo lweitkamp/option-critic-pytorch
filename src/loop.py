@@ -1,6 +1,9 @@
 import copy
 import gym
 import torch
+import numpy as np
+import random
+import time
 
 from src.experience_replay import ReplayBuffer
 from src.loss import actor_loss, critic_loss
@@ -27,13 +30,21 @@ def train_loop(env: gym.Env,
                actor_loss: Callable = actor_loss,
                critic_loss: Callable = critic_loss,
                print_every: int = 100000,
-               eval_env: Optional[gym.Env] = None):
+               eval_env: Optional[gym.Env] = None,
+               seed: int = 42):
+
+    # Seed everything
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    random.seed(seed)
+    env.seed(seed)
+    eval_env.seed(seed)
+    replay_buffer.seed(seed)
+    option_policy.seed(seed)
+
 
     # Create target model.
     model_target = copy.deepcopy(model)
-
-    # Create logger
-
     obs = env.reset()
     option = 0
 
@@ -42,6 +53,7 @@ def train_loop(env: gym.Env,
 
         # Sample option.
         option = option_policy.sample(out['terminations'], out['q'], option)
+
 
         # Create action distribution, sample action, calculate log_prob & entropy.
         action_dist = torch.distributions.Categorical(
@@ -62,14 +74,14 @@ def train_loop(env: gym.Env,
                     next_obs, model, model_target, optimizer, gamma, term_reg, ent_reg))
 
         # Update critic if condition is met.
-        if step % update_critic == 0:
+        if step % update_critic == 0 and len(replay_buffer) > batch_size:
             data_batch = replay_buffer.sample(batch_size)
             info.update(critic_loss(model, model_target,
                         optimizer, data_batch, gamma))
 
         # Polyak average target model.
         for mt, m in zip(model_target.parameters(), model.parameters()):
-            mt.data.copy_(mt.data * (1 - polyak) + m.data * polyak)
+            mt.data.copy_(mt.data * polyak + m.data * (1 - polyak))
 
         obs = env.reset() if done else next_obs
         logger.log(info, step)
@@ -79,37 +91,38 @@ def train_loop(env: gym.Env,
             logger.log(eval_out, step)
             print(f'Step {step} | Average Return {eval_out["eval/avg_ret"]}')
 
-
     return {'model': model,
             'option_policy': option_policy,
             'optimizer': optimizer,
             'steps': step}
 
 
+@torch.no_grad()
 def eval_loop(model: torch.nn,
               option_policy: Policy,
               env: gym.Env,
               num_episodes: int = 10):
     """With Greedy Option selection"""
+    start = time.time()
 
     returns = []
     for episode in range(num_episodes):
         episodic_return = 0
         done = False
         obs = env.reset()
+        option = 0
         while not done:
             out = model(obs)
-            option = int(out['q'].argmax(-1))
+            option = option_policy.greedy_action(out['terminations'], out['q'], option)
 
             action_dist = torch.distributions.Categorical(
                 logits=out['option_logits'][option])
             action = action_dist.sample()
 
-            next_obs, reward, done, info = env.step(action.item())
+            obs, reward, done, info = env.step(action.item())
 
             episodic_return += reward
-
         returns.append(episodic_return)
-
-    return {'eval_out/avg_ret': sum(returns) / num_episodes}
+    total_time = time.time() - start
+    return {'eval/avg_ret': sum(returns) / num_episodes, 'eval/computational_time': total_time}
 

@@ -6,7 +6,8 @@ import abc
 from torch.distributions import Distribution
 from torch.distributions.bernoulli import Bernoulli
 
-from typing import Dict
+from typing import Dict, Optional
+
 
 class Policy(abc.ABC):
 
@@ -15,29 +16,46 @@ class Policy(abc.ABC):
         return
 
     @abc.abstractmethod
+    def greedy_action(self, **kwargs):
+        return
+
+    @abc.abstractmethod
     def state_dict(self):
+        return
+
+    def seed(self, seed: int = 42):
         return
 
 
 class EpsilonGreedy(Policy):
 
+    rng: np.random.RandomState = None
+
     def __init__(self,
                  eps_start: float = 1.0,
                  eps_min: float = 0.1,
                  eps_decay: int = int(1e6),
-                 seed: int = 0):
+                 seed: int = 42):
 
         self.eps_start = eps_start
         self.eps_min = eps_min
         self.eps_decay = eps_decay
         self.n_steps: int = 0
+        self.seed(seed)
 
-        self.rng = np.random.RandomState(seed)
+    def greedy_action(self,
+                      terminations: Distribution,
+                      q_values: torch.Tensor,
+                      current_option: int):
+        """Take actions according to the greedy policy. In the case
+        of e-greedy, this is equal to sampling with the e-min value."""
+        return self.sample(terminations, q_values, current_option, epsilon=self.eps_min)
 
     def sample(self,
                terminations: Distribution,
                q_values: torch.Tensor,
-               current_option: int) -> int:
+               current_option: int,
+               epsilon: Optional[float] = None) -> int:
         termination_dist = Bernoulli(terminations[current_option])
         is_terminated = termination_dist.sample()
 
@@ -47,7 +65,10 @@ class EpsilonGreedy(Policy):
         # Now epsilon-greedy
         option = None
 
-        if self.rng.rand() < self.epsilon():
+        if epsilon is None:
+            epsilon = self.epsilon()
+
+        if self.rng.rand() < epsilon:
             option = np.random.choice(q_values.shape[-1])
         else:
             option = q_values.argmax(-1)
@@ -71,6 +92,9 @@ class EpsilonGreedy(Policy):
 
     def epsilon(self) -> float:
         eps = self.eps_min + (self.eps_start - self.eps_min) * \
-            np.exp(-self.n_steps / self.eps_decay)
+              np.exp(-self.n_steps / self.eps_decay)
         self.n_steps += 1
         return eps
+
+    def seed(self, seed):
+        self.rng = np.random.RandomState(seed)
