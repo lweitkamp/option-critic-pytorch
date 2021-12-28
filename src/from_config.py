@@ -45,7 +45,8 @@ def from_config(filename: str, seed: int = 42):
         config = json.load(f)
 
     # Set torch device.
-    device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f'On device {device}.')
 
     # Create the environment.
     env = make_env(config['env_name'])

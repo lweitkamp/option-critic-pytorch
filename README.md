@@ -1,10 +1,20 @@
 # Option Critic
 This repository is a PyTorch implementation of the paper "The Option-Critic Architecture" by Pierre-Luc Bacon, Jean Harb and Doina Precup [arXiv](https://arxiv.org/abs/1609.05140). It is mostly a rewriting of the original Theano code found [here](https://github.com/jeanharb/option_critic) into PyTorch. The main difference is that this implementation uses a single optimizer for both options and critic.
 
+## Experiments
+
+Configuration files for `CartPole-v0`, `CartPole-v1` and `PongNoFrameskip-v4` are available in the folder `config_files`. 
+Results on these environments are shown below, with 10 seeds averaged for the CartPole environments and 2 seeds for the Pong environment.
+Each plot displays the average sum of rewards of 10 episodes on the y-axis, evaluated with the greedy policy at #frames at the x-axis.
+
+| **CartPole-v0** | **CartPole-v1** | **PongNoFrameskip-v4** |
+|---|---|---|
+|![](images/CartPole-v0_eval.png) | | |
 
 ## Examples
+To make it easy, you can write a config file similar to those in `config_files` and load it using `src/from_config.py`. An example of this is provided in `main.py`.
 
-You can run 
+Alternatively, you can run the following code snippet.
 
 ```python
 import torch

@@ -54,7 +54,6 @@ def train_loop(env: gym.Env,
         # Sample option.
         option = option_policy.sample(out['terminations'], out['q'], option)
 
-
         # Create action distribution, sample action, calculate log_prob & entropy.
         action_dist = torch.distributions.Categorical(
             logits=out['option_logits'][option])
@@ -64,7 +63,8 @@ def train_loop(env: gym.Env,
 
         # Take a step in the environment.
         next_obs, reward, done, info = env.step(action.item())
-        info.update({'option': option})
+        info.update({'option': option, f'options/entropy_{option}': entropy,
+                     'q_omega/epsilon': option_policy.epsilon(update=False)})
 
         # Add experience to buffer.
         replay_buffer.push(obs, option, reward, next_obs, done)

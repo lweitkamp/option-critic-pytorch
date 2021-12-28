@@ -1,5 +1,5 @@
+import os.path
 from collections import defaultdict
-import datetime
 import gym
 from torch.utils.tensorboard import SummaryWriter
 
@@ -37,9 +37,9 @@ class ReturnWrapper(gym.Wrapper):
 class Logger:
     def __init__(self, dir: str, name: str, add_timestamp: bool = True):
         if add_timestamp:
-            name = f"{name}_{datetime.datetime.now()}"
+            name = f"{name}"
 
-        self.writer = SummaryWriter(f"{dir}/{name}")
+        self.writer = SummaryWriter(os.path.join(dir, name))
         self.option_dict = defaultdict(list)
         self.prev_option = 0
         self.option_counter = 0

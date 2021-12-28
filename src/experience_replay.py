@@ -4,7 +4,7 @@ from collections import deque
 
 
 class ReplayBuffer(object):
-    rng : random.SystemRandom
+    rng: random.SystemRandom
 
     def __init__(self, capacity, seed=42):
         self.buffer = deque(maxlen=capacity)
@@ -20,6 +20,9 @@ class ReplayBuffer(object):
         obs, option, reward, next_obs, done = zip(
             *random.sample(self.buffer, batch_size))
         return np.stack(obs), option, reward, np.stack(next_obs), done
+
+    def dataset(self):
+        return list(self.buffer)
 
     def __len__(self):
         return len(self.buffer)

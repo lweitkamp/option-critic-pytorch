@@ -62,9 +62,6 @@ class EpsilonGreedy(Policy):
         if not is_terminated:
             return current_option
 
-        # Now epsilon-greedy
-        option = None
-
         if epsilon is None:
             epsilon = self.epsilon()
 
@@ -90,10 +87,12 @@ class EpsilonGreedy(Policy):
         self.n_steps = state_dict['n_steps']
         return None
 
-    def epsilon(self) -> float:
+    def epsilon(self, update: bool = True) -> float:
         eps = self.eps_min + (self.eps_start - self.eps_min) * \
               np.exp(-self.n_steps / self.eps_decay)
-        self.n_steps += 1
+
+        if update:
+            self.n_steps += 1
         return eps
 
     def seed(self, seed):
