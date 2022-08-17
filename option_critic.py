@@ -79,7 +79,7 @@ class OptionCriticConv(nn.Module):
         return self.terminations(state).sigmoid() 
 
     def get_action(self, state, option):
-        logits = state @ self.options_W[option] + self.options_b[option]
+        logits = state.data @ self.options_W[option] + self.options_b[option]
         action_dist = (logits / self.temperature).softmax(dim=-1)
         action_dist = Categorical(action_dist)
 
@@ -167,7 +167,7 @@ class OptionCriticFeatures(nn.Module):
         return self.terminations(state).sigmoid() 
 
     def get_action(self, state, option):
-        logits = state @ self.options_W[option] + self.options_b[option]
+        logits = state.data @ self.options_W[option] + self.options_b[option]
         action_dist = (logits / self.temperature).softmax(dim=-1)
         action_dist = Categorical(action_dist)
 
