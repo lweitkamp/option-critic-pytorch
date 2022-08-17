@@ -5,7 +5,7 @@ This repository is a PyTorch implementation of the paper "The Option-Critic Arch
 ## Feature based deep-option critic
 Currently, the feature based model can learn CartPole-v0 with a learning rate of 0.005, this has however only been tested with two options. (I dont see any reason to use more than two in the cart pole environment.) the current runs directory holds the training results for this env with 0.005 and 0.006 learning rates.
 
-I suspect it will *only* take a grid search over learning rate to work on Pong and such. Just supply the right
+I suspect it will take a grid search over learning rate to work on Pong and such. Just supply the right
 ```--env```
 argument and the model should switch between features and convolutions.
 
@@ -20,6 +20,3 @@ pytorch 1.3.0
 tensorboard 2.0.2
 gym 0.15.3
 ```
-
-## Changes with respect to the original implementation
-- Using only one optimizer (RMSProp) for both acto and critic.
