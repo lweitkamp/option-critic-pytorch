@@ -16,7 +16,7 @@ There are plenty of resources to find a numpy version of the four rooms experime
 ## Requirements
 
 ```
-pytorch 1.3.0
-tensorboard 2.0.2
-gym 0.15.3
+pytorch>=1.12.1
+tensorboard>=2.0.2
+gym>=0.15.3
 ```
