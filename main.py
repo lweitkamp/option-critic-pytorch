@@ -107,11 +107,6 @@ def run(args):
 
             next_obs, reward, done, _ = env.step(action)
             buffer.push(obs, current_option, reward, next_obs, done)
-
-            old_state = state
-            state = option_critic.get_state(to_tensor(next_obs))
-
-            option_termination, greedy_option = option_critic.predict_option_termination(state, current_option)
             rewards += reward
 
             actor_loss, critic_loss = None, None
@@ -131,6 +126,9 @@ def run(args):
 
                 if steps % args.freeze_interval == 0:
                     option_critic_prime.load_state_dict(option_critic.state_dict())
+
+            state = option_critic.get_state(to_tensor(next_obs))
+            option_termination, greedy_option = option_critic.predict_option_termination(state, current_option)
 
             # update global steps etc
             steps += 1
