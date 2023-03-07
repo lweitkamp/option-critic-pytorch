@@ -20,7 +20,7 @@ python main.py --switch-goal True --env fourrooms
 ```
 
 ## Requirements
-
+Tested on python 3.7
 ```
 pytorch>=1.12.1
 tensorboard>=2.0.2
