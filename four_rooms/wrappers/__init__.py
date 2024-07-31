@@ -1,0 +1,1 @@
+from four_rooms.wrappers.switch_target import SwitchTarget
