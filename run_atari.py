@@ -3,9 +3,9 @@ import argparse
 import torch
 from copy import deepcopy
 
-from option_critic import OptionCriticFeatures, OptionCriticConv
-from option_critic import critic_loss as critic_loss_fn
-from option_critic import actor_loss as actor_loss_fn
+from model.option_critic import OptionCriticFeatures, OptionCriticConv
+from model.option_critic import critic_loss as critic_loss_fn
+from model.option_critic import actor_loss as actor_loss_fn
 
 from experience_replay import ReplayBuffer
 from utils import make_env, to_tensor
@@ -102,7 +102,7 @@ def run(args):
                 option_lengths[current_option].append(curr_op_len)
                 current_option = np.random.choice(args.num_options) if np.random.rand() < epsilon else greedy_option
                 curr_op_len = 0
-    
+
             action, logp, entropy = option_critic.get_action(state, current_option)
 
             next_obs, reward, done, _ = env.step(action)
